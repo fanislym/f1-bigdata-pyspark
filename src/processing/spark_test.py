@@ -1,3 +1,12 @@
+import os
+import sys
+
+# ---- Windows Spark sanity check ----
+if os.name == "nt" and not os.getenv("HADOOP_HOME"):
+    print("Windows detected: please set HADOOP_HOME to folder containing bin/winutils.exe")
+    sys.exit(1)
+# -----------------------------------
+
 from pyspark.sql import SparkSession
 from dotenv import load_dotenv
 load_dotenv()
