@@ -1,7 +1,7 @@
 import os
 from datetime import datetime, timezone
 from dotenv import load_dotenv
-
+import math
 import pandas as pd
 import fastf1
 from pymongo import MongoClient, UpdateOne
@@ -14,7 +14,10 @@ COLL_LAPS = os.getenv("MONGO_COLL_LAPS", "raw_laps")
 
 
 def to_seconds(td):
-    if pd.isna(td):
+    if td is None or pd.isna(td):
+        return None
+    # if float NaN slips through
+    if isinstance(td, float) and math.isnan(td):
         return None
     return float(td.total_seconds())
 
@@ -66,6 +69,8 @@ def ingest_race_laps(year: int, gp_name: str, session: str = "R"):
     print(f"Upserted: {res.upserted_count}, Modified: {res.modified_count}, Matched: {res.matched_count}")
     print("Total docs now:", coll.count_documents({}))
 
-
 if __name__ == "__main__":
+    print("Target DB:", os.getenv("MONGO_DB", "f1"))
+    print("Target collection:", os.getenv("MONGO_COLL_LAPS", "raw_laps_v2"))
     ingest_race_laps(2023, "Bahrain", "R")
+

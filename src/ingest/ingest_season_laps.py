@@ -6,30 +6,36 @@ import fastf1
 from tqdm import tqdm
 import pandas as pd
 import numpy as np
+import math
 
 def mongo_safe(value):
-    """Convert pandas/numpy time types into MongoDB-safe values."""
     if value is None:
         return None
 
-    # pandas missing values
+    # pandas missing
     try:
         if pd.isna(value):
             return None
     except Exception:
         pass
 
-    # Timedelta -> milliseconds (float)
+    # float NaN
+    if isinstance(value, float) and math.isnan(value):
+        return None
+
+    # numpy NaN
+    if isinstance(value, np.floating) and np.isnan(value):
+        return None
+
+    # Timedelta -> seconds
     if isinstance(value, pd.Timedelta):
-        return value.total_seconds() * 1000.0
+        return value.total_seconds()
 
     # Timestamp -> ISO string
     if isinstance(value, pd.Timestamp):
-        if value.tzinfo is None:
-            return value.to_pydatetime().isoformat()
-        return value.to_pydatetime().astimezone(UTC).isoformat()
+        return value.to_pydatetime().isoformat()
 
-    # numpy scalars -> python scalars
+    # numpy scalar -> python scalar
     if isinstance(value, (np.integer, np.floating, np.bool_)):
         return value.item()
 
@@ -38,9 +44,11 @@ def mongo_safe(value):
 load_dotenv()
 
 MONGO_URI = os.getenv("MONGO_URI")
+if not MONGO_URI:
+    raise ValueError("MONGO_URI missing. Create a .env file in repo root.")
+
 DB_NAME = os.getenv("MONGO_DB", "f1")
 COLL_NAME = os.getenv("MONGO_COLL_LAPS", "raw_laps")
-
 
 def ingest_race_laps(year: int, gp_name: str, session: str = "R") -> int:
     """
@@ -57,6 +65,12 @@ def ingest_race_laps(year: int, gp_name: str, session: str = "R") -> int:
     sess.load()
 
     laps = sess.laps.reset_index(drop=True)
+    keep_cols = [
+        "Driver","Team","LapNumber","Stint","Compound","TyreLife",
+        "LapTime","Sector1Time","Sector2Time","Sector3Time",
+        "PitInTime","PitOutTime","IsAccurate","TrackStatus"
+    ]
+    laps = laps[keep_cols]
 
     # Convert to JSON-friendly format
     laps_dicts = laps.to_dict(orient="records")
@@ -68,18 +82,19 @@ def ingest_race_laps(year: int, gp_name: str, session: str = "R") -> int:
         # A stable unique key to prevent duplicates:
         # Year + EventName + SessionName + Driver + LapNumber
         key = {
-            "Year": year,
-            "EventName": sess.event["EventName"],
-            "SessionName": sess.name,
-            "Driver": row.get("Driver"),
-            "LapNumber": row.get("LapNumber"),
+        "Year": year,
+        "GrandPrix": sess.event["EventName"],
+        "Session": session,
+        "Driver": row.get("Driver"),
+        "LapNumber": row.get("LapNumber"),
         }
+
 
         clean_row = {k: mongo_safe(v) for k, v in row.items()}
 
         clean_row["Year"] = year
-        clean_row["EventName"] = sess.event["EventName"]
-        clean_row["SessionName"] = sess.name
+        clean_row["GrandPrix"] = sess.event["EventName"]
+        clean_row["Session"] = session
         clean_row["IngestedAt"] = now
 
         ops.append(UpdateOne(key, {"$set": clean_row}, upsert=True))
