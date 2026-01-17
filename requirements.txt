@@ -1,6 +1,7 @@
-fastf1
-pandas
-numpy
-pymongo
-python-dotenv
-pyspark
+fastf1==3.7.0
+pandas==2.3.3
+numpy==2.4.1
+pymongo==4.16.0
+python-dotenv==1.2.1
+pyspark==3.5.3
+tqdm==4.67.1
