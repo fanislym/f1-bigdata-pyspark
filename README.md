@@ -23,7 +23,7 @@ The pipeline is designed to scale across **multiple races and seasons**, emphasi
 
 - **Secondary dimension: Velocity (simulated)**
   - Incremental, append-only ingestion per race
-  - Pipeline supports repeated ingestion without duplication (upserts)
+  - Pipeline supports repeated ingestion without duplication using upserts
 
 - **Data management**
   - MongoDB Atlas (NoSQL, document-based storage)
@@ -65,18 +65,36 @@ src/
 
 py -3.11 -m venv .venv311  
 .\.venv311\Scripts\Activate.ps1  
-pip install -r requirements.txt
+pip install -r requirements.txt  
 
+---
 
 ## 2. Configure Environment Variables
 
 Create a `.env` file in the project root (see `.env.example`):
 
-MONGO_URI=mongodb+srv://<user>:<password>@cluster0.mongodb.net/?retryWrites=true&w=majority  
+MONGO_URI=mongodb+srv://f1user:LandoNorris1@cluster0.go591zg.mongodb.net/?retryWrites=true&w=majority  
 MONGO_DB=f1  
 MONGO_COLL_LAPS=raw_laps_v2  
 
-⚠️ Do **not** commit `.env` — it is ignored by `.gitignore`.
+⚠️ **Security note**  
+- `.env` is intentionally ignored by `.gitignore`
+
+
+---
+
+## MongoDB Atlas Access (Evaluator)
+
+For evaluation, a dedicated MongoDB Atlas user with **read and write access** is provided.
+
+- Database: `f1`
+- Permissions: `readWrite`
+- This allows:
+  - Re-running ingestion pipelines
+  - Executing Spark processing jobs
+  - Verifying data integrity and results
+
+The evaluator only needs to place the provided credentials into the `.env` file as shown above.
 
 ---
 
@@ -145,7 +163,6 @@ python src/processing/tyre_degradation_by_stint.py
 - Spark may print Windows-specific warnings when cleaning temporary files  
   → These do **not** affect correctness or results
 - MongoDB Spark Connector JARs are downloaded automatically on first run
-- MongoDB Atlas credentials are intentionally **not included** for security reasons
 
 ---
 
