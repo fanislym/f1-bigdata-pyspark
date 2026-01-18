@@ -152,6 +152,10 @@ Expected output:
 
 python src/processing/mongo_avg_laptime_by_driver.py
 
+**Fastest vs Most Consistent Drivers (Speed–Consistency Tradeoff):**
+
+python src/processing/fastest_vs_most_consistent_drivers.py
+
 **Tyre degradation analysis by stint:**
 
 python src/processing/tyre_degradation_by_stint.py
